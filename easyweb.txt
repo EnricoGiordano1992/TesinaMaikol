@@ -1,0 +1,1 @@
+EASYWEB: la stringa di risposta che ricevo dal client si trova in TCP_RX_BUF e la puoi interrogare dentro main.c : 72
