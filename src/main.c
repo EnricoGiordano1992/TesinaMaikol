@@ -33,6 +33,13 @@
 
 int pw_flag = 0;	//no password
 
+int led_flag = 0;	//all'inizio è spento
+
+int logout_flag = 0;
+
+void gestisci_richiesta();
+
+
 /* ----------------------- Start implementation -----------------------------*/
 int
 main( void )
@@ -41,7 +48,12 @@ main( void )
 
 	SystemInit();
 
-	
+	resetGPIO();
+	setOutput_LEDint();
+	turn_off_the_LEDS();
+
+	memcpy(WebSide,WebSide_senza_password,sizeof(WebSide_senza_password));
+
 	TCPLowLevelInit();								//stack tcp init (low level, so it's a hardware init)
 
 	  HTTPStatus = 0;                                // clear HTTP-server's flag register
@@ -73,10 +85,8 @@ void HTTPServer(void)
   {
     if (SocketStatus & SOCK_DATA_AVAILABLE)      // check if remote TCP sent data
     {
-    	if(pw_flag == 0)
-    		//pw control
-    		if(PW_search() == 1)
-    			pw_flag = 1;
+
+    	gestisci_richiesta();
 
     	TCPReleaseRxBuffer();                      // and throw it away
     }
@@ -147,8 +157,18 @@ int PW_search()
 	{
 		++i;
 		//pw control
+		/*
+		 * copio all'interno del buffer pw_buffer tutto ciò che si trova dopo i (pw=) del buffer TCP_RX_BUF
+		 * fino alla lunghezza della nostra password (PW_LENGHT-1)
+		 *
+		 */
 		strncpy(pw_buffer, (char *)&TCP_RX_BUF[i], PW_LENGTH-1);
 
+
+		/*
+		 * confronto carattere per carattere la password ricevuta con quella prestabilita
+		 *
+		 */
 		for(j = 0;j < PW_LENGTH -1; j++)
 			if(pw_buffer[j] != pw[j])
 				return 0;
@@ -159,3 +179,84 @@ int PW_search()
 	return 0;
 }
 
+
+
+
+
+int LED_action()
+{
+	int i = 0;
+
+	//search '?' character
+	while(TCP_RX_BUF[i] != '/')
+		i++;
+
+	//search "led" string
+	if(TCP_RX_BUF[++i] == 'l' && TCP_RX_BUF[++i] == 'e' && TCP_RX_BUF[++i] == 'd')
+		return 1;
+
+	return 0;
+}
+
+
+int logout()
+{
+	int i = 0;
+
+	//search '?' character
+	while(TCP_RX_BUF[i] != '/')
+		i++;
+
+	//search "log" string
+	if(TCP_RX_BUF[++i] == 'l' && TCP_RX_BUF[++i] == 'o' && TCP_RX_BUF[++i] == 'g')
+		return 1;
+
+	return 0;
+
+
+}
+
+
+
+void gestisci_richiesta()
+{
+
+   	/*
+    	 * se non ho ricevuto ancora la password o l'ho ricevuta sbagliata,
+    	 * il flag "pw_flag" è = 0
+    	 */
+    	if(pw_flag == 0)
+    		//pw control
+    		if(PW_search() == 1)
+    		{
+    			pw_flag = 1;
+    			memcpy(WebSide,WebSide_con_password,sizeof(WebSide_con_password));
+    			logout_flag = 1;
+    		}
+
+    	/*
+    	 * se ho ricevuto la richiesta led
+    	 *
+    	 */
+    	if(LED_action() == 1)
+    	{
+    		if(led_flag == 0)
+    			//accendo il led
+    			turn_on_single_LED(0);
+    		else
+    			turn_off_single_LED(0);
+
+    		led_flag = !led_flag;
+
+    	}
+
+    	if(logout() == 1 && logout_flag == 1)
+    	{
+			memcpy(WebSide,WebSide_senza_password,sizeof(WebSide_senza_password));
+			led_flag = 0;
+			pw_flag = 0;
+
+			logout_flag = 0;
+    	}
+
+}
