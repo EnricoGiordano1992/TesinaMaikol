@@ -40,6 +40,13 @@ void setOutput_LEDint(void)
 		LPC_GPIO2->FIODIR |= 0xFF;			// P2[0..7] = Outputs
 }
 
+void setInput_P2(void)
+{
+	// Configurazione Pin GPIO = P2[0..7] Drive LED
+		LPC_GPIO2->FIODIR &= 0x00;			// P2[0..7] = Input
+
+}
+
 void setButton_reset(void)
 {
 	LPC_GPIO2->FIODIR &= ~(1UL<<10);	

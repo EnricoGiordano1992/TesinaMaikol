@@ -29,7 +29,7 @@ void SysTick_Handler(void)
 // Setup SysTick Timer to interrupt at 10 msec intervals
 void Start_SysTick10ms(void)
 {
-	if (SysTick_Config(SystemCoreClock / 1000)) {
+	if (SysTick_Config(SystemCoreClock / 100)) {
 		while (1);  // Capture error
 	}
 }
